@@ -57,9 +57,9 @@ bool exited_right(pcord_t p, cord_t wall, int rank, int num_p){
 
 int main(int argc, char** argv){
   
-  unsigned int time_stamp = 0, time_max, rnk;
+  unsigned int time_stamp = 0, time_max;
   int send_left_count, send_right_count;
-  int recv_right_count, recv_left_count=0, num_flags= 0;
+  int recv_right_count, recv_left_count=0;
   float pressure = 0, sum = 0;
 
   //MPI stuff
@@ -103,7 +103,7 @@ int main(int argc, char** argv){
 
   		
   // Declare send arrays used in mpi functions
-  int scounts[num_p], displs[num_p];
+  //int scounts[num_p];
   //pcord_t *sendparticles, *locparticles;
   plst_t  *locparticles = NULL;
   pcord_t **sendparticles; // first dimension stans for the rank of the process, the other for index of particle.
@@ -151,17 +151,14 @@ int main(int argc, char** argv){
     walls[rank].x1 = BOX_HORIZ_SIZE;
   else
     walls[rank].x1 = walls[rank].x0 + BOX_HORIZ_SIZE/num_p;
-  
-  for(rnk = 0; rnk < num_p; ++rnk){
-    scounts[rnk] = displs[rnk] = 0;
-  }
+
       
   float r, a;
   int i;
 
   int num_part = INIT_NO_PARTICLES/num_p;
   // send init particles and designate to processes. 
-  for(i=0; num_part; i++) {
+  for(i=0; i < num_part; i++) {
     // initialize random position
     recvparticles[i].x = locwall.x0 + rand1()*BOX_HORIZ_SIZE/4;
     recvparticles[i].y = locwall.y0 + rand1()*BOX_VERT_SIZE/4;
@@ -193,6 +190,7 @@ int main(int argc, char** argv){
   
   /* Main loop */
   for (time_stamp=0; time_stamp<time_max; time_stamp++) { // for each time stamp
+    fprintf(stderr, "hi there \n");
     init_collisions(collisions, num_part);
     for(p=0; p<num_part; p++) { // for all particles
       current_part = get_part(locparticles, p);
@@ -215,7 +213,7 @@ int main(int argc, char** argv){
     // move particles that has not collided with another
     for(p=send_left_count=send_right_count=0,
 	  recv_left_count=recv_right_count=0;
-	p < scounts[rank] + num_flags; p++) {
+	p < num_part; p++) {
       current_part = get_part(locparticles, p);
       if(!collisions[p]) { //&& locparticles[p].to_remove == 0){
 	feuler(&current_part, 1);
