@@ -10,7 +10,7 @@
 #include "physics.h"
 
 // to do:
-/* fix the code when we check for collsiion and so forth, here we use the old way. */
+// Need to handle nullptr when using plst_t struct.
 //Feel free to change this program to facilitate parallelization.
 void print_pcord(pcord_t* p){
   pcord_t ptemp;
