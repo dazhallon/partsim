@@ -1,0 +1,6 @@
+// This is a short constructction and a test for constructing
+// an linked list for the lab particle simulation lab
+
+struct parlst{
+  pcord_t* prev, next;
+};

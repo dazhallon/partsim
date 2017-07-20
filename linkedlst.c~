@@ -1,0 +1,16 @@
+#include<physics.h>
+
+struct part{
+  pcord_t self;
+  pcord_t* next;
+};
+
+int main () {
+
+  // create a short list
+  pcord_t[2] particles;
+  struct part test;
+  test.self = particles[0];
+  test.next = *particles[1];
+  
+}
