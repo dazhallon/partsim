@@ -158,8 +158,10 @@ int main(int argc, char** argv){
       
   float r, a;
   int i;
+
+  int num_part = INIT_NO_PARTICLES/num_p;
   // send init particles and designate to processes. 
-  for(i=0; i<INIT_NO_PARTICLES/num_p; i++) {
+  for(i=0; num_part; i++) {
     // initialize random position
     recvparticles[i].x = locwall.x0 + rand1()*BOX_HORIZ_SIZE/4;
     recvparticles[i].y = locwall.y0 + rand1()*BOX_VERT_SIZE/4;
@@ -174,6 +176,8 @@ int main(int argc, char** argv){
     push_lst(locparticles, recvparticles[i]);
 	      
   }
+
+
   
   
   // For each proces, do:
@@ -189,14 +193,14 @@ int main(int argc, char** argv){
   
   /* Main loop */
   for (time_stamp=0; time_stamp<time_max; time_stamp++) { // for each time stamp
-    init_collisions(collisions, scounts[rank] + num_flags);
-    for(p=0; p<scounts[rank]; p++) { // for all particles
+    init_collisions(collisions, num_part);
+    for(p=0; p<num_part; p++) { // for all particles
       current_part = get_part(locparticles, p);
       if(collisions[p])// || locparticles[p].to_remove != 0) 
 	/* check for collisions */
 	// If a local boundary is hit, check if collide with any particle
 	// Check if the particle will remain or will go to an other local box
-	for(pp=p+1; pp<scounts[rank] + num_flags; pp++) {
+	for(pp=p+1; pp<num_part; pp++) {
 	  if(collisions[pp]) continue; //|| locparticles[p].to_remove != 0) continue;
 	  sub_current_part = get_part(locparticles, p);
 	  float t=collide(&current_part, &sub_current_part);
@@ -247,12 +251,14 @@ int main(int argc, char** argv){
 
     if (rank-1 >= 0) {
       MPI_Send(send_left, send_left_count, MPI_PCORD, rank-1, 0, comm);
-          printf("rank %d sent to left\n", rank);
+      printf("rank %d sent to left\n", rank);
+      num_part -= send_left_count;
     }
 
     if (rank+1 < num_p) {
       MPI_Send(send_right, send_right_count, MPI_PCORD, rank+1, 1, comm);
-        printf("rank %d sent to right\n", rank);
+      printf("rank %d sent to right\n", rank);
+      num_part += send_right_count;
     }
 
     // check if something was sent. Using probe to find recv count.
@@ -262,6 +268,7 @@ int main(int argc, char** argv){
       //fprintf(stderr, "recv_left_count = %d after MPI_probe and MPI_Get_count\n", recv_left_count);
       MPI_Recv(recv_left, recv_left_count, MPI_CORD, rank-1, 1, comm,
 	       &status);
+      num_part += recv_left_count;
     }
 
     if(rank+1 < num_p){
@@ -269,6 +276,7 @@ int main(int argc, char** argv){
       MPI_Get_count(&status, MPI_PCORD, &recv_right_count);
       MPI_Recv(recv_right, recv_right_count, MPI_CORD, rank+1, 0, comm,
 	       &status);
+      num_part += recv_right_count;
     }
     
     // update locparticels
