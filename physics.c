@@ -17,6 +17,8 @@ void push_lst(plst_t* head, pcord_t new_part) {
   new = (plst_t*) malloc(sizeof(plst_t));
   new->val = new_part;
   new->next = head;
+
+  *head = *new;
 }
 
 void multi_push(plst_t* head, pcord_t new_part[],
@@ -45,15 +47,22 @@ void remove_from_list(plst_t* head, int n){
   free(temp);
 }
 
-pcord_t get_part(plst_t* head, int n){
+pcord_t* get_part(plst_t* head, int n){
   plst_t *current = head;
   int i;
+
   
   for (i = 0; i<n; ++i){
-    current = current->next;
+    if (current->next != NULL)
+      current = current->next;
+    else{
+      fprintf(stderr, "The function get_part had a to large int n = %d compared to the size of plst_t* head\n",
+	      n);
+      exit(1);
+    }
   }
-
-  return current->val;
+  
+  return current;
 }
 
 void convert_to_plst_t(pcord_t from[], int n_particles,
