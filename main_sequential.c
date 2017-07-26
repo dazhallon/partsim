@@ -107,7 +107,7 @@ int main(int argc, char** argv){
   //pcord_t *sendparticles, *locparticles;
   plst_t  *locparticles = NULL;
   pcord_t **sendparticles; // first dimension stans for the rank of the process, the other for index of particle.
-  pcord_t *recvparticles = NULL;
+  pcord_t temp_pcord;
   
   // parse arguments
   if(argc != 2) {
@@ -132,7 +132,7 @@ int main(int argc, char** argv){
   pcord_t *particles = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
   bool *collisions=(bool*) malloc(INIT_NO_PARTICLES*sizeof(bool));
   sendparticles = (pcord_t**) malloc(num_p*INIT_NO_PARTICLES*sizeof(pcord_t));
-  recvparticles = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
+  // recvparticles = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
   //sendparticles = (plst_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
   // locparticles = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
   locparticles = (plst_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));									
@@ -152,7 +152,6 @@ int main(int argc, char** argv){
     walls[rank].x1 = BOX_HORIZ_SIZE;
   else
     walls[rank].x1 = walls[rank].x0 + BOX_HORIZ_SIZE/num_p;
-
       
   float r, a;
   int i;
@@ -161,17 +160,27 @@ int main(int argc, char** argv){
   // send init particles and designate to processes. 
   for(i=0; i < num_part; i++) {
     // initialize random position
-    recvparticles[i].x = locwall.x0 + rand1()*BOX_HORIZ_SIZE/num_p;
-    recvparticles[i].y = locwall.y0 + rand1()*BOX_VERT_SIZE;
+    temp_pcord.x = locwall.x0 + rand1()*BOX_HORIZ_SIZE/num_p;
+    temp_pcord.y = locwall.y0 + rand1()*BOX_VERT_SIZE;
 	
     // initialize random velocity
     r = rand1()*MAX_INITIAL_VELOCITY;
     a = rand1()*2*PI;
-    recvparticles[i].vx = r*cos(a);
-    recvparticles[i].vy = r*sin(a);
-    // recvparticles[i].to_remove=0;
+    temp_pcord.vx = r*cos(a);
+    temp_pcord.vy = r*sin(a);
 
-    push_lst(locparticles, recvparticles[i]);	      
+    push_lst(&locparticles, temp_pcord);	      
+  }
+
+  // print the first elemets
+  {
+    plst_t* current = (plst_t*) malloc(sizeof(plst_t));
+    current = locparticles;
+    for (int i = 0; i<5; ++i, current=current->next){
+      fprintf(stderr, "x = %f, y = %f, vx = %f, vy = %f\n",
+	      current->val.x, current->val.y, current->val.vx,
+	      current->val.vy);
+    }
   }
 
   // if everything works, this should to
@@ -182,36 +191,35 @@ int main(int argc, char** argv){
   int pressure_count =0;
 
   // should reutrn plst_t * (so that a refreence could be returned.)
-  pcord_t* current_part;
-  pcord_t* sub_current_part;
-
-  // convert recvparticles into locarticles, so thath we get a linked list to work with later
-  // convert_to_plst_t(recvparticles, INIT_NO_PARTICLES/4, locparticles); // bug here
-
+  plst_t* current_part = NULL;
+  plst_t* sub_current_part = NULL;
+  current_part = (plst_t*) malloc(sizeof(plst_t*));
+  sub_current_part = (plst_t*) malloc(sizeof(plst_t*));
+  
   
   /* Main loop */
-  for (time_stamp=0; time_stamp<time_max; time_stamp++) { // for each time stamp
-    
-    init_collisions(collisions, num_part);
-    
-    for(p=0; p<num_part; p++) { // for all particles
+  for (time_stamp=0; time_stamp<time_max; time_stamp++) { // for each time stamp    
+    init_collisions(collisions, num_part);     
+    for(p=0, current_part = locparticles;
+	p<num_part;
+	p++, current_part = current_part->next) { // for all particles
       //fprintf(stderr, "p = %d for processes with rank %d\n", p, rank);
-      current_part = get_part(locparticles, p);
+      //current_part = get_part(locparticles, p);
       if(collisions[p])
 	/* check for collisions */
 	// If a local boundary is hit, check if collide with any particle
 	// Check if the particle will remain or will go to an another local box
-	for(pp=p+1; pp<num_part; pp++) {
+	for(pp=p+1, sub_current_part=current_part->next;
+	    pp<num_part;
+	    pp++, sub_current_part=sub_current_part->next) {
 	  if(collisions[pp]) continue;
-	  sub_current_part = get_part(locparticles, pp); // maybe should return reference rather then just the value.
-	  float t=collide(&current_part, &sub_current_part);
+	  
+	  //sub_current_part = get_part(locparticles, pp); // maybe should return reference rather then just the value.
+	  //	  sub_current_part = current_part->next;
+	  float t=collide(&(current_part->val), &(sub_current_part->val));
 	  if(t!=-1){ // collision
 	    collisions[p]=collisions[pp]=1;
-	    interact(&current_part, &sub_current_part, t);
-	    // need to alter the directions after collosion
-	    alter_part(particles, p, current_part);
-	    alter_part(particles, p, sub_current_part);
-	    
+	    interact(current_part, sub_current_part, t);	    
 	    break; // only check collision of two particles
 	  }
 	}
@@ -223,24 +231,26 @@ int main(int argc, char** argv){
 	p < num_part; p++) {
       current_part = get_part(locparticles, p);
       if(!collisions[p]) { 
-	feuler(&current_part, 1);
-	pressure += mpi_wall_collide(&current_part, locwall,
-				     rank, num_p);
+	feuler(current_part, 1);
+	pressure += mpi_wall_collide(&(current_part->val),
+				     locwall, rank, num_p);
+
 	++pressure_count;
 	//fprintf(stderr, "Pressure was added from rank %d\n", rank);
       }
-      else if (exited_left(current_part, locwall, rank)) {// &&
-	//      locparticles[p].to_remove==0){
-	send_left[send_left_count] = current_part;
-	//locparticles[p].to_remove = 1;
+      else if (exited_left(current_part->val, locwall, rank)) {
+
+	send_left[send_left_count] = current_part->val;
+	remove_from_list(&locparticles, p);
+	
 	++send_left_count;
 	if(num_p == 1 || rank == 0)
 	  exit(5);
 	//printf("sending %d to left\trank %d\n", send_left_count, rank);
       }
-      else if (exited_right(current_part, locwall, rank, num_p)) {// &&
-	  //locparticles[p].to_remove==0){
-	  send_right[send_right_count] = current_part;
+      else if (exited_right(current_part->val, locwall, rank, num_p)) {
+	send_right[send_right_count] = current_part->val;
+	remove_from_list(&locparticles, p);
 	  //locparticles[p].to_remove = 1;
 	  ++send_right_count;
 	  if(num_p == 1 || rank == num_p - 1)
@@ -286,8 +296,8 @@ int main(int argc, char** argv){
     
     // update locparticels
     // think about what happens when we tranfer particles between boxes
-    multi_push(locparticles, recv_right, recv_right_count);
-    multi_push(locparticles, recv_left, recv_left_count); //prob. need a special case hanfle for when recv_right/left == NULL
+    multi_push(&locparticles, recv_right, recv_right_count);
+    multi_push(&locparticles, recv_left, recv_left_count); //prob. need a special case hanfle for when recv_right/left == NULL
   }
   
   // Gather pressure
