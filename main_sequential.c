@@ -172,16 +172,16 @@ int main(int argc, char** argv){
     push_lst(&locparticles, temp_pcord);	      
   }
 
-  // print the first elemets
-  {
-    plst_t* current = (plst_t*) malloc(sizeof(plst_t));
-    current = locparticles;
-    for (int i = 0; i<5; ++i, current=current->next){
-      fprintf(stderr, "x = %f, y = %f, vx = %f, vy = %f\n",
-	      current->val.x, current->val.y, current->val.vx,
-	      current->val.vy);
-    }
-  }
+  /* // print the first elemets */
+  /* { */
+  /*   plst_t* current = (plst_t*) malloc(sizeof(plst_t)); */
+  /*   current = locparticles; */
+  /*   for (int i = 0; i<5; ++i, current=current->next){ */
+  /*     fprintf(stderr, "x = %f, y = %f, vx = %f, vy = %f\n", */
+  /* 	      current->val.x, current->val.y, current->val.vx, */
+  /* 	      current->val.vy); */
+  /*   } */
+  /* } */
 
   // if everything works, this should to
   get_part(locparticles, 1); // does not work!!
@@ -200,41 +200,49 @@ int main(int argc, char** argv){
   /* Main loop */
   for (time_stamp=0; time_stamp<time_max; time_stamp++) { // for each time stamp    
     init_collisions(collisions, num_part);     
-    for(p=0, current_part = locparticles;
+    for(p=send_left_count=send_right_count=0,
+	  recv_left_count=recv_right_count=0,
+	  current_part = locparticles;
 	p<num_part;
 	p++, current_part = current_part->next) { // for all particles
       //fprintf(stderr, "p = %d for processes with rank %d\n", p, rank);
       //current_part = get_part(locparticles, p);
-      if(collisions[p])
-	/* check for collisions */
-	// If a local boundary is hit, check if collide with any particle
-	// Check if the particle will remain or will go to an another local box
-	for(pp=p+1, sub_current_part=current_part->next;
-	    pp<num_part;
-	    pp++, sub_current_part=sub_current_part->next) {
-	  if(collisions[pp]) continue;
+      if(collisions[p]) continue;
+      /* check for collisions */
+      // If a local boundary is hit, check if collide with any particle
+      // Check if the particle will remain or will go to an another local box
+      for(pp=p+1, sub_current_part=current_part->next;
+	  pp<num_part;
+	  pp++, sub_current_part=sub_current_part->next) {
+	if(collisions[pp]) continue;
 	  
-	  //sub_current_part = get_part(locparticles, pp); // maybe should return reference rather then just the value.
-	  //	  sub_current_part = current_part->next;
-	  float t=collide(&(current_part->val), &(sub_current_part->val));
-	  if(t!=-1){ // collision
-	    collisions[p]=collisions[pp]=1;
-	    interact(current_part, sub_current_part, t);	    
-	    break; // only check collision of two particles
-	  }
+	//sub_current_part = get_part(locparticles, pp); // maybe should return reference rather then just the value.
+	//	  sub_current_part = current_part->next;
+	float t=collide(&(current_part->val), &(sub_current_part->val));
+	//fprintf(stderr, "t = %1.0f\nx", t);
+	if(t!=-1){ // collision
+	  fprintf(stderr, "collsions in rank %d\n", rank);
+	  collisions[p]=collisions[pp]=1;
+	  fprintf(stderr, "before interact in rank %d\n", rank);
+	  interact(current_part, sub_current_part, t);
+	  fprintf(stderr, "after interact in rank %d\n", rank);
+	  break; // only check collision of two particles
 	}
+      }
+      // fprintf(stderr, "collisions[%d] = %d\n",p, collisions[p] );
     }
 
     // move particles that has not collided with another
     for(p=send_left_count=send_right_count=0,
-	  recv_left_count=recv_right_count=0;
-	p < num_part; p++) {
-      current_part = get_part(locparticles, p);
+	  recv_left_count=recv_right_count=0,
+	  current_part = locparticles;
+	p < num_part;
+	++p, current_part = current_part->next){
+     
       if(!collisions[p]) { 
 	feuler(current_part, 1);
 	pressure += mpi_wall_collide(&(current_part->val),
 				     locwall, rank, num_p);
-
 	++pressure_count;
 	//fprintf(stderr, "Pressure was added from rank %d\n", rank);
       }
@@ -251,14 +259,14 @@ int main(int argc, char** argv){
       else if (exited_right(current_part->val, locwall, rank, num_p)) {
 	send_right[send_right_count] = current_part->val;
 	remove_from_list(&locparticles, p);
-	  //locparticles[p].to_remove = 1;
-	  ++send_right_count;
-	  if(num_p == 1 || rank == num_p - 1)
-	    exit(6);
-	  //printf("sending %d to right\trank %d\n", send_right_count, rank);
+	//locparticles[p].to_remove = 1;
+	++send_right_count;
+	if(num_p == 1 || rank == num_p - 1)
+	  exit(6);
+	//printf("sending %d to right\trank %d\n", send_right_count, rank);
       }
     }
-
+  
     
     /* Send scheme(for the tags used in messages): 
        0 = send to left, 1 = send to right */
