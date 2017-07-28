@@ -7,7 +7,7 @@
 
 void push_lst(plst_t** head, pcord_t new_part);
 
-void multi_push(plst_t** head, pcord_t new_part[], int n_to_append);
+void multi_push(plst_t* head, pcord_t new_part[], int n_to_append);
 
 void remove_from_list(plst_t** head, int n);
 
@@ -18,7 +18,7 @@ void alter_part(plst_t* head, int where, pcord_t part);
 void convert_to_plst_t(pcord_t from[], int n_particles,
 		       plst_t* to);
 
-int feuler(plst_t *a,
+int feuler(pcord_t *a,
 	   float time_step) ;
 
 float wall_collide(plst_t *p,
@@ -31,11 +31,11 @@ void update_locparticels(pcord_t *p, pcord_t *recv_left,
 			 int left_tot_count, pcord_t *recv_right,
 			 int right_tot_count, int* totsize);
 
-float collide(pcord_t *p1,
-	      pcord_t *p2) ;
+float collide(pcord_t p1,
+	      pcord_t p2) ;
 
-void interact(plst_t *p1,
-	      plst_t *p2,
+void interact(pcord_t *p1,
+	      pcord_t *p2,
 	      float t) ;
 
 
