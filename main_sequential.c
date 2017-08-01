@@ -132,7 +132,7 @@ int main(int argc, char** argv){
   float r, a;
   int i;
 
-  int num_part = INIT_NO_PARTICLES/num_p;
+  int num_part = INIT_NO_PARTICLES;
   // send init particles and designate to processes. 
   for(i=0; i < num_part; i++) {
     // initialize random position
@@ -188,18 +188,19 @@ int main(int argc, char** argv){
 	  pp<num_part;
 	  pp++, sub_current_part=sub_current_part->next) {
 	if(collisions[pp]) continue;
-	  
-       	float t=1;//collide(current_part->val, sub_current_part->val);
+
+
+       	float t=collide(current_part->val, sub_current_part->val);
 	//fprintf(stderr, "t = %1.0f\n", t);
 	if(t!=-1){ // collision
 	  
-	  fprintf(stderr, "collsions in rank %d\n", rank);
+	  // fprintf(stderr, "collsions in rank %d\n", rank);
 	  collisions[p]=collisions[pp]=1;
-	  fprintf(stderr, "before interact in rank %d\n", rank);
-	  print_pcord(current_part->val);
+	  //fprintf(stderr, "before interact in rank %d\n", rank);
+	  //print_pcord(current_part->val);
 	  interact(&(current_part->val), &(sub_current_part->val), t);
-	  fprintf(stderr, "after interact in rank %d\n", rank);
-	  print_pcord(current_part->val);
+	  //fprintf(stderr, "after interact in rank %d\n", rank);
+	  //print_pcord(current_part->val);
 	  sub_current_part = NULL;
 	  break; // only check collision of two particles
 	}
@@ -250,13 +251,15 @@ int main(int argc, char** argv){
 
     if (rank-1 >= 0) {
       MPI_Send(send_left, send_left_count, MPI_PCORD, rank-1, 0, comm);
-      // printf("rank %d sent to left\n", rank);
+      if (send_left_count > 0)
+	printf("rank %d sent %d particles to left\n", rank, send_left_count);
       num_part -= send_left_count;
     }
 
     if (rank+1 < num_p) {
       MPI_Send(send_right, send_right_count, MPI_PCORD, rank+1, 1, comm);
-      //printf("rank %d sent to right\n", rank);
+      if (send_right_count)
+	printf("rank %d sent %d particles to right\n", rank, send_right_count);
       num_part -= send_right_count;
     }
 
@@ -264,7 +267,6 @@ int main(int argc, char** argv){
     if(rank-1 >= 0){
       MPI_Probe(rank-1, 1, comm, &status);
       MPI_Get_count(&status, MPI_PCORD, &recv_left_count);
-      //fprintf(stderr, "recv_left_count = %d after MPI_probe and MPI_Get_count\n", recv_left_count);
       MPI_Recv(recv_left, recv_left_count, MPI_PCORD, rank-1, 1, comm,
 	       &status);
       num_part += recv_left_count;
@@ -283,7 +285,9 @@ int main(int argc, char** argv){
     multi_push(locparticles, recv_right, recv_right_count);
     multi_push(locparticles, recv_left, recv_left_count); //prob. need a special case hanfle for when recv_right/left == NULL
 
-    MPI_Barrier(comm); 
+    MPI_Barrier(comm);
+
+    fprintf(stderr, "rank %d has %d particles\n", rank, num_part);
   }
   
   // Gather pressure
