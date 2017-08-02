@@ -107,9 +107,11 @@ int main(int argc, char** argv){
   cord_t locwall;
 
   // 2. allocate particle buffer and initialize the particles
-  bool *collisions=(bool*) malloc(INIT_NO_PARTICLES*sizeof(bool));
+  bool *collisions= NULL;
+  collisions = (bool*) malloc(INIT_NO_PARTICLES*num_p*sizeof(bool));
 
-  locparticles = (plst_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));									
+  locparticles = NULL;
+  locparticles = (plst_t*) malloc(INIT_NO_PARTICLES*num_p*sizeof(pcord_t));									
   pcord_t *send_left = NULL;
   send_left = (pcord_t*) malloc(INIT_NO_PARTICLES*num_p*sizeof(pcord_t));
   pcord_t *send_right = NULL;
@@ -301,7 +303,7 @@ int main(int argc, char** argv){
 	    sum/(WALL_LENGTH*time_max), tot_pressure_count);
 
   // free stuff
-  if (collisions  != NULL) free(collisions);
+  free(collisions);
   free(locparticles);
   free(send_left);
   free(send_right);
