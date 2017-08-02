@@ -112,23 +112,29 @@ int main(int argc, char** argv){
   bool *collisions=(bool*) malloc(INIT_NO_PARTICLES*sizeof(bool));
 
   locparticles = (plst_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));									
-  pcord_t *send_left = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
-  pcord_t *send_right = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
-  pcord_t *recv_left = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
-  pcord_t *recv_right = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
+  pcord_t *send_left = NULL;
+  send_left = (pcord_t*) malloc(INIT_NO_PARTICLES*num_p*sizeof(pcord_t));
+  pcord_t *send_right = NULL;
+  send_right = (pcord_t*) malloc(INIT_NO_PARTICLES*num_p*sizeof(pcord_t));
+  
+  pcord_t *recv_left = NULL;
+  recv_left = (pcord_t*) malloc(INIT_NO_PARTICLES*num_p*sizeof(pcord_t));
+  pcord_t *recv_right = NULL;
+  recv_right = (pcord_t*) malloc(INIT_NO_PARTICLES*num_p*sizeof(pcord_t));
 
   srand( time(NULL) + 1234 );
 
   
   // set up walls 
-  walls[rank].y0 = 0;
-  walls[rank].y1 = BOX_VERT_SIZE;
-  walls[rank].x0 = rank*BOX_HORIZ_SIZE/num_p;
+  locwall.y0 = 0;
+  locwall.y1 = BOX_VERT_SIZE;
+  locwall.x0 = rank*BOX_HORIZ_SIZE/num_p;
   if (rank == num_p-1)
-    walls[rank].x1 = BOX_HORIZ_SIZE;
+    locwall.x1 = BOX_HORIZ_SIZE;
   else
-    walls[rank].x1 = walls[rank].x0 + BOX_HORIZ_SIZE/num_p;
-      
+    locwall.x1 = locwall.x0 + BOX_HORIZ_SIZE/num_p;
+
+     
   float r, a;
   int i;
 
@@ -145,6 +151,8 @@ int main(int argc, char** argv){
     temp_pcord.vx = r*cos(a);
     temp_pcord.vy = r*sin(a);
     
+    fprintf(stderr, "rank %d created a particle: \n", rank);
+    print_pcord(temp_pcord);
     push_lst(&locparticles, temp_pcord);
   }
 
@@ -224,10 +232,11 @@ int main(int argc, char** argv){
 	++pressure_count;
 	//fprintf(stderr, "Pressure was added from rank %d\n", rank);
       }
-      else if (exited_left(current_part->val, locwall, rank)) {
+      if (exited_left(current_part->val, locwall, rank)) {
 
-	send_left[send_left_count] = current_part->val;
+	*(send_left + send_left_count) = current_part->val;
 	remove_from_list(&locparticles, p);
+	--p; --num_part; // to compensate for the removed particle
 	
 	++send_left_count;
  	if(num_p == 1 || rank == 0)
@@ -235,8 +244,9 @@ int main(int argc, char** argv){
 	//printf("sending %d to left\trank %d\n", send_left_count, rank);
       }
       else if (exited_right(current_part->val, locwall, rank, num_p)) {
-	send_right[send_right_count] = current_part->val;
+	*(send_right + send_right_count) = current_part->val;
 	remove_from_list(&locparticles, p);
+	--p; --num_part; // to compensate for the removed particle
 
 	++send_right_count;
 	if(num_p == 1 || rank == num_p - 1)
@@ -253,14 +263,12 @@ int main(int argc, char** argv){
       MPI_Send(send_left, send_left_count, MPI_PCORD, rank-1, 0, comm);
       if (send_left_count > 0)
 	printf("rank %d sent %d particles to left\n", rank, send_left_count);
-      num_part -= send_left_count;
     }
 
     if (rank+1 < num_p) {
       MPI_Send(send_right, send_right_count, MPI_PCORD, rank+1, 1, comm);
-      if (send_right_count)
+      if (send_right_count > 0)
 	printf("rank %d sent %d particles to right\n", rank, send_right_count);
-      num_part -= send_right_count;
     }
 
     // check if something was sent. Using probe to find recv count.
@@ -282,12 +290,14 @@ int main(int argc, char** argv){
     
     // update locparticels
     // think about what happens when we tranfer particles between boxes
-    multi_push(locparticles, recv_right, recv_right_count);
-    multi_push(locparticles, recv_left, recv_left_count); //prob. need a special case hanfle for when recv_right/left == NULL
-
-    MPI_Barrier(comm);
+    multi_push(&locparticles, recv_right, recv_right_count);
+    multi_push(&locparticles, recv_left, recv_left_count); //prob. need a special case hanfle for when recv_right/left == NULL
 
     fprintf(stderr, "rank %d has %d particles\n", rank, num_part);
+    print_pcord(locparticles->val);
+
+    if (rank == 0) 
+      fprintf(stderr, "current time step: %d\n", time_stamp);
   }
   
   // Gather pressure

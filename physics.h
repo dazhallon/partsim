@@ -7,7 +7,7 @@
 
 void push_lst(plst_t** head, pcord_t new_part);
 
-void multi_push(plst_t* head, pcord_t new_part[], int n_to_append);
+void multi_push(plst_t** head, pcord_t new_part[], int n_to_append);
 
 void remove_from_list(plst_t** head, int n);
 

@@ -10,8 +10,8 @@
 #define PI 3.141592653
 
 #define MAX_NO_PARTICLES  15000  /* Maximum number of particles/processor */
-#define INIT_NO_PARTICLES 50    /* Initial number of particles/processor */
-#define MAX_INITIAL_VELOCITY 50
+#define INIT_NO_PARTICLES 1    /* Initial number of particles/processor */
+#define MAX_INITIAL_VELOCITY 5
 
 
 #define BOX_HORIZ_SIZE 10.0 // 10000.0

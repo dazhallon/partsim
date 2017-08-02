@@ -21,12 +21,12 @@ void push_lst(plst_t** head, pcord_t new_part) {
   *head = new;
 }
 
-void multi_push(plst_t* head, pcord_t new_part[],
+void multi_push(plst_t** head, pcord_t new_part[],
 		int n_to_append){
-  int i;
+  unsigned int i;
 
-  for(i = 0; 0 < n_to_append; ++i){
-    push_lst(&head, new_part[i]);
+  for(i = 0; i < n_to_append; ++i){
+    push_lst(head, new_part[i]);
   }
 }
 
