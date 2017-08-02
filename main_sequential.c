@@ -105,10 +105,8 @@ int main(int argc, char** argv){
   wall.y1 = BOX_VERT_SIZE;
 
   cord_t locwall;
-  cord_t walls[num_p]; //needed in other to distr. the particels
 
   // 2. allocate particle buffer and initialize the particles
-  pcord_t *particles = (pcord_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));
   bool *collisions=(bool*) malloc(INIT_NO_PARTICLES*sizeof(bool));
 
   locparticles = (plst_t*) malloc(INIT_NO_PARTICLES*sizeof(pcord_t));									
@@ -150,9 +148,7 @@ int main(int argc, char** argv){
     a = rand1()*2*PI;
     temp_pcord.vx = r*cos(a);
     temp_pcord.vy = r*sin(a);
-    
-    fprintf(stderr, "rank %d created a particle: \n", rank);
-    print_pcord(temp_pcord);
+
     push_lst(&locparticles, temp_pcord);
   }
 
@@ -202,18 +198,17 @@ int main(int argc, char** argv){
 	//fprintf(stderr, "t = %1.0f\n", t);
 	if(t!=-1){ // collision
 	  
-	  // fprintf(stderr, "collsions in rank %d\n", rank);
+	  //fprintf(stderr, "collsions in rank %d\n", rank);
 	  collisions[p]=collisions[pp]=1;
 	  //fprintf(stderr, "before interact in rank %d\n", rank);
 	  //print_pcord(current_part->val);
 	  interact(&(current_part->val), &(sub_current_part->val), t);
 	  //fprintf(stderr, "after interact in rank %d\n", rank);
-	  //print_pcord(current_part->val);
+	  // print_pcord(current_part->val);
 	  sub_current_part = NULL;
 	  break; // only check collision of two particles
 	}
       }
-       // fprintf(stderr, "collisions[%d] = %d\n",p, collisions[p] );
     }
 
 
@@ -249,8 +244,10 @@ int main(int argc, char** argv){
 	--p; --num_part; // to compensate for the removed particle
 
 	++send_right_count;
-	if(num_p == 1 || rank == num_p - 1)
+	if(num_p == 1 || rank == num_p - 1){
+	  fprintf(stderr, "The right-most process tried to send a particle to a non-existent neighbour to the right\n");
 	  exit(6);
+	}
 	//printf("sending %d to right\trank %d\n", send_right_count, rank);
       }
     }
@@ -261,14 +258,14 @@ int main(int argc, char** argv){
 
     if (rank-1 >= 0) {
       MPI_Send(send_left, send_left_count, MPI_PCORD, rank-1, 0, comm);
-      if (send_left_count > 0)
-	printf("rank %d sent %d particles to left\n", rank, send_left_count);
+      //if (send_left_count > 0)
+	//printf("rank %d sent %d particles to left\n", rank, send_left_count);
     }
 
     if (rank+1 < num_p) {
       MPI_Send(send_right, send_right_count, MPI_PCORD, rank+1, 1, comm);
-      if (send_right_count > 0)
-	printf("rank %d sent %d particles to right\n", rank, send_right_count);
+      //  if (send_right_count > 0)
+	// printf("rank %d sent %d particles to right\n", rank, send_right_count);
     }
 
     // check if something was sent. Using probe to find recv count.
@@ -292,12 +289,6 @@ int main(int argc, char** argv){
     // think about what happens when we tranfer particles between boxes
     multi_push(&locparticles, recv_right, recv_right_count);
     multi_push(&locparticles, recv_left, recv_left_count); //prob. need a special case hanfle for when recv_right/left == NULL
-
-    fprintf(stderr, "rank %d has %d particles\n", rank, num_part);
-    print_pcord(locparticles->val);
-
-    if (rank == 0) 
-      fprintf(stderr, "current time step: %d\n", time_stamp);
   }
   
   // Gather pressure
@@ -310,8 +301,7 @@ int main(int argc, char** argv){
 	    sum/(WALL_LENGTH*time_max), tot_pressure_count);
 
   // free stuff
-  free(particles);
-  free(collisions);
+  if (collisions  != NULL) free(collisions);
   free(locparticles);
   free(send_left);
   free(send_right);
