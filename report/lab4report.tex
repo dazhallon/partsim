@@ -6,6 +6,8 @@
 \usepackage{subcaption}
 \usepackage{graphicx}
 
+\usepackage{diagbox}
+
 \graphicspath{{./../images/}}
 
 
@@ -90,12 +92,49 @@ right is sent using dynamic communication.
 \section{Results}
 \label{sec:results}
 
+The elapsed times  are presented below. Here, $p$ denotes the number
+of processors used and $n$ deontes the problem size. In this
+case it denotes the number of particles used in the simulation. In all of the simulations, the simulated time was 1000 seconds.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}[]{c|c|c|c}
+    \backslashbox{$p$}{$n$} & 1000 & 2000 & 4000 \\
+    \hline 
+    1 & 5.1946  &   20.042 & 82.7355 \\
+    2 & 1.23806 &  4.95515 & 20.7491 \\
+    4 & 0.32439 & 1.30241  &  5.07428
+  \end{tabular}
+  \caption{Elapsed time when differrent number of processors was used.}
+  \label{tab:1}
+\end{table}
+
+\subsection{Verification of the gas law}
+\label{sec:ver-of-gas-law}
+
+The average pressures obtained using different number of particles and 
+box sizes are covered in Table \ref{tab:2}. As we can we, the pressure 
+changes linearily proportional to the number of particles and area (volume) 
+used.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}[h]{c|c|c}
+    \backslashbox{$V$}{$n$}  & 2000 & 4000 \\
+    \hline 
+    10000 $\times$ 10000 &  0.008375 & 0.016690 \\
+    15000 $\times$ 10000 &  0.005340 & 0.011739   
+  \end{tabular}
+  \caption{A table that verifies the gas law.}
+  \label{tab:2}
+\end{table}
+
 \clearpage
 \onecolumn
 \section*{Code}
 \label{sec:code}
 
-\lstinputlisting[caption=main.c,style=ccode]{/home/anton/Documents/tddc78/particle/patsim/main_sequential.c}
+\lstinputlisting[caption=main.c,style=ccode]{./../main_sequential.c}
 
 \end{document}
 

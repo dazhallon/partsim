@@ -64,6 +64,9 @@ int main(int argc, char** argv){
   MPI_Status status;
   //init_mpi_pcord();
 
+  double stime;
+  stime = MPI_Wtime();
+
   
   /* create a mpi type for pcord_t */
   const int nitems=4;
@@ -301,6 +304,13 @@ int main(int argc, char** argv){
   if (rank == 0)
     fprintf(stderr, "Average pressure = %f pressure count = %d\n",
 	    sum/(WALL_LENGTH*time_max), tot_pressure_count);
+  
+  double etime;
+  etime = MPI_Wtime();
+  if (rank == 0){
+    printf("Elasped time: %g, np = %d, n = %d\n",
+	   etime-stime, num_p, num_p*INIT_NO_PARTICLES);
+  }
 
   // free stuff
   free(collisions);
