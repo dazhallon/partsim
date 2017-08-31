@@ -1,0 +1,106 @@
+\documentclass[two column]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath,amsthm,amssymb}
+
+\usepackage{subcaption}
+\usepackage{graphicx}
+
+\graphicspath{{./../images/}}
+
+
+\usepackage{listings}
+
+
+\usepackage{color}
+
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{orange}{rgb}{0.8,0,0}
+
+\lstdefinestyle{ccode}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  frame=L,
+  xleftmargin=\parindent,
+  language=C,
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bfseries\color{green},
+  commentstyle=\color{gray},
+  identifierstyle=\color{blue},
+  stringstyle=\color{orange},
+}
+
+\def\listingsfont{\ttfamily} 
+\def\listingsfontinline{\ttfamily}
+
+\title{Report for computer exercise 4 - Particle simulator in MPI}
+\author{Anton Karlsson\\antka388\\931217-7117}
+\date{}
+\begin{document}
+
+\maketitle
+
+\section{Code overview}
+\label{sec:code-overview}
+
+\subsection{Discussion on partitioning}
+\label{sec:disc-part}
+
+
+
+The box in which the particles was contained in was partitionion column
+wise among the processors, meaning that each process owned a local box
+with the orginal hieght and a width of $\texttt{BOX\_VERT\_LENGTH}/p$,
+where $p$ is the number of processors. The reasoning behind this
+partitioning is that is is easy to implement, however, the downside is
+that the speed-up  is not the best. This is because the the local boxes
+that is owned by a process, has an area that decreases fast as the
+number of processes increase. 
+
+A partitioning that might be better is to partitioning in squares, 
+as the area will not dercease as fast. Thus
+the probability a particle to a different process will no
+decrease has fast has the column-wise partitioning. However, the
+implementation of the square partitioning is harder to code.
+
+\subsection{Execution}
+\label{sec:execution}
+
+First, the process definie their deminsion of it own local partiioning
+using the global values of the original box deminsions along with their
+process id. Then each process intilies equaly many particles (given by
+the paramter \texttt{NUM\_PART}) with random position (within the local
+box of the process) and a random velocity. This way, we avoid some
+initial communcation without losing correctness.
+
+The main loop that was given can now be executed. Each process moves
+its local particles and deal with eventual collisions and wall
+collsions that occour. Note that any collisions that appear between
+particels that are not owned by the same process are ingored. Since the
+probability of  this happening is realative small and therefore will
+not affect the final result noetworthily. 
+
+When the partilces has been moved, the process check wheter any
+particles has coordinates that indicates that it need to move to a
+neighboring box. The particles that is to be sent to left respective
+right is sent using dynamic communication. 
+
+
+\section{Results}
+\label{sec:results}
+
+\clearpage
+\onecolumn
+\section*{Code}
+\label{sec:code}
+
+\lstinputlisting[caption=main.c,style=ccode]{/home/anton/Documents/tddc78/particle/patsim/main_sequential.c}
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

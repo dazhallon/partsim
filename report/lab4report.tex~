@@ -1,0 +1,50 @@
+\documentclass[two column]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath,amsthm,amssymb}
+
+\usepackage{subcaption}
+\usepackage{graphicx}
+
+\graphicspath{{./../images/}}
+
+
+\usepackage{listings}
+
+
+\usepackage{color}
+
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{orange}{rgb}{0.8,0,0}
+
+\lstdefinestyle{ccode}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  frame=L,
+  xleftmargin=\parindent,
+  language=C,
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bfseries\color{green},
+  commentstyle=\color{gray},
+  identifierstyle=\color{blue},
+  stringstyle=\color{orange},
+}
+
+\def\listingsfont{\ttfamily} 
+\def\listingsfontinline{\ttfamily}
+
+\title{Report for computer exercise 4 - Particle simulator in MPI}
+\author{Anton Karlsson\\antka388\\931217-7117}
+\date{}
+\begin{document}
+\maketitle
+
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
